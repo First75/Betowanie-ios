@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @State private var selectedTab = 2
+    @State private var selectedTab = 0
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -13,11 +13,7 @@ struct MainTabView: View {
                 MatchesView()
             }
 
-            Tab("Moje zakłady", systemImage: "list.bullet.clipboard.fill", value: 2) {
-                MyBetsView()
-            }
-
-            Tab("Ranking", systemImage: "trophy.fill", value: 3) {
+            Tab("Ranking", systemImage: "trophy.fill", value: 2) {
                 RankingView()
             }
         }

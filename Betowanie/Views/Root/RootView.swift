@@ -21,10 +21,16 @@ struct RootView: View {
         .animation(.easeInOut(duration: 0.3), value: appVM.currentUser?.id)
         .animation(.easeInOut(duration: 0.3), value: appVM.currentUser?.isActive)
         .animation(.easeInOut(duration: 0.3), value: appVM.isLoading)
+        .toastHost()
         .task {
             guard !didRestoreSession else { return }
             await appVM.restoreSession()
             didRestoreSession = true
+        }
+        .task(id: appVM.currentUser?.id) {
+            guard appVM.currentUser != nil else { return }
+            await PushNotifications.shared.requestAuthorization()
+            await appVM.syncFCMTokenIfAvailable()
         }
     }
 }

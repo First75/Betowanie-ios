@@ -11,7 +11,6 @@ struct MatchDetailView: View {
     @State private var existingBet: Bet?
     @State private var otherBets: [Bet] = []
     @State private var isSaving = false
-    @State private var showSuccessToast = false
 
     var body: some View {
         NavigationStack {
@@ -39,16 +38,8 @@ struct MatchDetailView: View {
             .task {
                 await loadData()
             }
-            .overlay(alignment: .top) {
-                if showSuccessToast {
-                    TerraToast(message: "Postawiono zakład")
-                        .padding(.top, 8)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            }
         }
-        .animation(.easeInOut(duration: 0.2), value: showSuccessToast)
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
     }
 
     // MARK: - Match Header
@@ -281,29 +272,17 @@ struct MatchDetailView: View {
         Task {
             do {
                 try await appVM.dataService.placeBet(bet)
-                let refreshedGameBets = (try? await appVM.dataService.fetchBets(forGame: game.id)) ?? []
                 await MainActor.run {
                     existingBet = bet
-                    otherBets = refreshedGameBets
                     isSaving = false
-                    presentSuccessToast()
+                    Toast.shared.show("Postawiono zakład", style: .positive)
+                    dismiss()
                 }
             } catch {
                 await MainActor.run {
                     isSaving = false
+                    Toast.shared.show("Nie udało się zapisać zakładu", style: .negative)
                 }
-            }
-        }
-    }
-
-    @MainActor
-    private func presentSuccessToast() {
-        showSuccessToast = true
-
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            await MainActor.run {
-                showSuccessToast = false
             }
         }
     }

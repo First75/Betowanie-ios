@@ -11,6 +11,7 @@ import FirebaseCore
 @main
 struct BetowanieApp: App {
 
+    @UIApplicationDelegateAdaptor(BetowanieAppDelegate.self) private var appDelegate
     @State private var appVM: AppViewModel
 
     init() {

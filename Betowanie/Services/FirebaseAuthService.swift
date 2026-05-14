@@ -67,6 +67,20 @@ final class FirebaseAuthService: AuthServiceProtocol {
         currentUser = nil
     }
 
+    func updateFCMToken(_ token: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        try await firestoreDb
+            .collection("users")
+            .document(uid)
+            .setData(
+                [
+                    "fcmToken": token,
+                    "fcmTokenUpdatedAt": FieldValue.serverTimestamp(),
+                ],
+                merge: true
+            )
+    }
+
     func restoreSession() async -> User? {
         guard let firebaseUser = Auth.auth().currentUser else {
             currentUser = nil

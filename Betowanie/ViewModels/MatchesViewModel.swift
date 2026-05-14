@@ -9,13 +9,16 @@ final class MatchesViewModel {
     }
 
     var games: [Game] = []
+    var bets: [Bet] = []
     var selectedFilter: Filter = .upcoming
     var isLoading = false
 
     private let dataService: any DataServiceProtocol
+    private let userId: String?
 
-    init(dataService: any DataServiceProtocol) {
+    init(dataService: any DataServiceProtocol, userId: String?) {
         self.dataService = dataService
+        self.userId = userId
     }
 
     var filteredGames: [Game] {
@@ -29,9 +32,20 @@ final class MatchesViewModel {
         }
     }
 
+    func bet(forGame gameId: Int) -> Bet? {
+        bets.first { $0.gameId == gameId }
+    }
+
     func loadGames() async {
         isLoading = true
-        games = (try? await dataService.fetchGames()) ?? []
+        if let userId {
+            async let fetchedGames = dataService.fetchGames()
+            async let fetchedBets = dataService.fetchBets(forUser: userId)
+            games = (try? await fetchedGames) ?? []
+            bets = (try? await fetchedBets) ?? []
+        } else {
+            games = (try? await dataService.fetchGames()) ?? []
+        }
         isLoading = false
     }
 }

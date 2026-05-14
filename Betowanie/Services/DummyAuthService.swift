@@ -71,4 +71,9 @@ final class DummyAuthService: AuthServiceProtocol {
         // Dummy service has no persisted session
         currentUser
     }
+
+    func updateFCMToken(_ token: String) async throws {
+        // Dummy service does not persist tokens
+        print("[DummyAuth] updateFCMToken (no-op): \(token.prefix(12))…")
+    }
 }

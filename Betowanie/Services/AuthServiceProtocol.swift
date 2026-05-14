@@ -8,6 +8,9 @@ protocol AuthServiceProtocol {
 
     /// Check if there's a persisted session (e.g. Firebase Auth state)
     func restoreSession() async -> User?
+
+    /// Saves the device's FCM token to the user's profile so the backend can target this device.
+    func updateFCMToken(_ token: String) async throws
 }
 
 enum AuthError: LocalizedError {

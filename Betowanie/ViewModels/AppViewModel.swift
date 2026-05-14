@@ -14,18 +14,32 @@ final class AppViewModel {
         self.dataService = dataService
         self.authService = authService
         self.currentUser = authService.currentUser
+
+        PushNotifications.shared.onTokenUpdate = { [weak self] token in
+            guard let self, self.currentUser != nil else { return }
+            Task { try? await self.authService.updateFCMToken(token) }
+        }
+    }
+
+    /// Persists the current FCM token (if any) for the logged-in user.
+    /// Call after login/register/session-restore so the most recent token reaches Firestore.
+    func syncFCMTokenIfAvailable() async {
+        guard currentUser != nil, let token = PushNotifications.shared.fcmToken else { return }
+        try? await authService.updateFCMToken(token)
     }
 
     func login(email: String, password: String) async throws {
         let user = try await authService.login(email: email, password: password)
         currentUser = user
         await refreshUserStats()
+        await syncFCMTokenIfAvailable()
     }
 
     func register(email: String, username: String, password: String) async throws {
         let user = try await authService.register(email: email, username: username, password: password)
         currentUser = user
         await refreshUserStats()
+        await syncFCMTokenIfAvailable()
     }
 
     func logout() {
@@ -42,6 +56,7 @@ final class AppViewModel {
         if let user = await authService.restoreSession() {
             currentUser = user
             await refreshUserStats()
+            await syncFCMTokenIfAvailable()
         }
     }
 

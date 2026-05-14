@@ -27,7 +27,11 @@ struct MatchesView: View {
                                     emptyStateView
                                 } else {
                                     ForEach(viewModel.filteredGames) { game in
-                                        MatchCard(game: game, showBetInfo: false)
+                                        MatchCard(
+                                            game: game,
+                                            bet: viewModel.bet(forGame: game.id),
+                                            showBetInfo: true
+                                        )
                                             .padding(.horizontal, 16)
                                             .onTapGesture {
                                                 selectedGame = game
@@ -37,6 +41,9 @@ struct MatchesView: View {
                             }
                             .padding(.vertical, 8)
                         }
+                        .refreshable {
+                            await viewModel.loadGames()
+                        }
                     }
                 } else {
                     ProgressView()
@@ -45,11 +52,16 @@ struct MatchesView: View {
             .background(Color.terraBackground)
             .navigationTitle("Mecze")
             .profileAccessSheet()
-            .sheet(item: $selectedGame) { game in
+            .sheet(item: $selectedGame, onDismiss: {
+                Task { await viewModel?.loadGames() }
+            }) { game in
                 MatchDetailView(game: game)
             }
             .task {
-                let vm = MatchesViewModel(dataService: appVM.dataService)
+                let vm = MatchesViewModel(
+                    dataService: appVM.dataService,
+                    userId: appVM.currentUser?.id
+                )
                 viewModel = vm
                 await vm.loadGames()
             }

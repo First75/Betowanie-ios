@@ -27,6 +27,11 @@ struct RankingView: View {
                         }
                         .padding(16)
                     }
+                    .refreshable {
+                        async let reload: Void = viewModel.loadRanking()
+                        async let stats: Void = appVM.refreshUserStats()
+                        _ = await (reload, stats)
+                    }
                 } else {
                     ProgressView()
                 }

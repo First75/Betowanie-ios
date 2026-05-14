@@ -13,7 +13,6 @@ struct FinalsBetCard: View {
     @State private var isSaving = false
     @State private var isLoadingOtherBets = false
     @State private var isShowingOtherBetsSheet = false
-    @State private var showSuccessToast = false
 
     @State private var selectedTeam1Id: Int?
     @State private var selectedTeam2Id: Int?
@@ -38,14 +37,6 @@ struct FinalsBetCard: View {
         .sheet(isPresented: $isShowingOtherBetsSheet) {
             otherBetsSheet
         }
-        .overlay(alignment: .top) {
-            if showSuccessToast {
-                TerraToast(message: "Postawiono zakład")
-                    .padding(.top, 8)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: showSuccessToast)
     }
 
     private var beforeStartContent: some View {
@@ -385,24 +376,13 @@ struct FinalsBetCard: View {
                 await MainActor.run {
                     myBet = bet
                     isSaving = false
-                    presentSuccessToast()
+                    Toast.shared.show("Zapisano typ finalistów", style: .positive)
                 }
             } catch {
                 await MainActor.run {
                     isSaving = false
+                    Toast.shared.show("Nie udało się zapisać typu", style: .negative)
                 }
-            }
-        }
-    }
-
-    @MainActor
-    private func presentSuccessToast() {
-        showSuccessToast = true
-
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            await MainActor.run {
-                showSuccessToast = false
             }
         }
     }

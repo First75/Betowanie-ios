@@ -53,24 +53,36 @@ struct MatchCard: View {
             }
 
             // Bet info
-            if showBetInfo, let bet {
+            if showBetInfo {
                 Divider()
                     .background(Color.terraTextSecondary.opacity(0.2))
 
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Wynik: \(bet.displayBet)")
+                if let bet {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Wynik: \(bet.displayBet)")
+                                .font(.terraCaption())
+                                .foregroundStyle(Color.terraTextSecondary)
+                            Text("Zwycięzca: \(bet.winner.displayName(homeTeamName: game.homeTeamName, awayTeamName: game.awayTeamName))")
+                                .font(.terraCaption(11))
+                                .foregroundStyle(Color.terraTextSecondary.opacity(0.8))
+                        }
+
+                        Spacer()
+
+                        if game.isFinished || game.isLive {
+                            BetResultBadge(result: BetResultBadge.result(for: bet, game: game))
+                        }
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.terraTextSecondary.opacity(0.7))
+                        Text(game.isFinished ? "Nie obstawiono tego meczu" : "Nie obstawiono jeszcze tego meczu")
                             .font(.terraCaption())
                             .foregroundStyle(Color.terraTextSecondary)
-                        Text("Zwycięzca: \(bet.winner.displayName(homeTeamName: game.homeTeamName, awayTeamName: game.awayTeamName))")
-                            .font(.terraCaption(11))
-                            .foregroundStyle(Color.terraTextSecondary.opacity(0.8))
-                    }
-
-                    Spacer()
-
-                    if game.isFinished || game.isLive {
-                        BetResultBadge(result: BetResultBadge.result(for: bet, game: game))
+                        Spacer()
                     }
                 }
             }
