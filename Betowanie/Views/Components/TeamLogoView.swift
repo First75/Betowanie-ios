@@ -4,20 +4,33 @@ import WebKit
 struct TeamLogoView: View {
     let urlString: String
     let teamName: String
+    var teamId: Int? = nil
     var size: CGFloat = 36
+    var contentMode: ContentMode = .fit
+    var clipsToCircle: Bool = true
+
+    private var localAssetName: String? {
+        teamId.map(String.init)
+    }
 
     var body: some View {
-        if urlString.lowercased().hasSuffix(".svg") {
-            SVGWebView(urlString: urlString, size: size)
+        if let localAssetName, UIImage(named: localAssetName) != nil {
+            Image(localAssetName)
+                .resizable()
+                .aspectRatio(contentMode: contentMode)
                 .frame(width: size, height: size)
-                .clipShape(Circle())
+                .modifier(TeamLogoClipModifier(clipsToCircle: clipsToCircle))
+        } else if urlString.lowercased().hasSuffix(".svg") {
+            SVGWebView(urlString: urlString, size: size, contentMode: contentMode)
+                .frame(width: size, height: size)
+                .modifier(TeamLogoClipModifier(clipsToCircle: clipsToCircle))
         } else {
             AsyncImage(url: URL(string: urlString)) { phase in
                 switch phase {
                 case .success(let image):
                     image
                         .resizable()
-                        .scaledToFit()
+                        .aspectRatio(contentMode: contentMode)
                 case .failure:
                     initialsView
                 default:
@@ -26,6 +39,7 @@ struct TeamLogoView: View {
                 }
             }
             .frame(width: size, height: size)
+            .modifier(TeamLogoClipModifier(clipsToCircle: clipsToCircle))
         }
     }
 
@@ -44,9 +58,23 @@ struct TeamLogoView: View {
             .clipShape(Circle())
     }
 }
+
+private struct TeamLogoClipModifier: ViewModifier {
+    let clipsToCircle: Bool
+
+    func body(content: Content) -> some View {
+        if clipsToCircle {
+            content.clipShape(Circle())
+        } else {
+            content
+        }
+    }
+}
+
 struct SVGWebView: UIViewRepresentable {
     let urlString: String
     let size: CGFloat
+    let contentMode: ContentMode
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -61,6 +89,7 @@ struct SVGWebView: UIViewRepresentable {
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         guard let url = URL(string: urlString) else { return }
+        let objectFit = contentMode == .fill ? "cover" : "contain"
         // Use an HTML wrapper to ensure the SVG fits the view bounds and has transparent background
         let html = """
         <html>
@@ -68,7 +97,7 @@ struct SVGWebView: UIViewRepresentable {
             <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">
             <style>
                 html, body { margin:0; padding:0; background: transparent; }
-                img { width: 100%; height: 100%; object-fit: contain; display:block; }
+                img { width: 100%; height: 100%; object-fit: \(objectFit); display:block; }
             </style>
         </head>
         <body>
@@ -79,4 +108,3 @@ struct SVGWebView: UIViewRepresentable {
         webView.loadHTMLString(html, baseURL: nil)
     }
 }
-

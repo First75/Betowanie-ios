@@ -5,6 +5,8 @@ struct MatchCard: View {
     var bet: Bet?
     var showBetInfo: Bool = true
 
+    private let cornerRadius: CGFloat = 12
+
     var body: some View {
         VStack(spacing: 12) {
             // Stage label
@@ -87,7 +89,67 @@ struct MatchCard: View {
                 }
             }
         }
-        .terraCard()
+        .padding(20)
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .shadow(
+            color: Color(red: 0.18, green: 0.20, blue: 0.19).opacity(0.06),
+            radius: 20,
+            x: 0,
+            y: 4
+        )
+    }
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: cornerRadius)
+            .fill(Color.terraCardFill)
+            .overlay {
+                HStack(spacing: 0) {
+                    backgroundLogo(
+                        urlString: game.homeTeamIcon,
+                        teamName: game.homeTeamName,
+                        horizontalOffset: -28
+                    )
+
+                    backgroundLogo(
+                        urlString: game.awayTeamIcon,
+                        teamName: game.awayTeamName,
+                        horizontalOffset: 28
+                    )
+                }
+                .overlay {
+                    LinearGradient(
+                        colors: [
+                            Color.terraCardFill.opacity(0.14),
+                            Color.terraCardFill.opacity(0.55),
+                            Color.terraCardFill.opacity(0.14)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                }
+            }
+    }
+
+    private func backgroundLogo(
+        urlString: String,
+        teamName: String,
+        horizontalOffset: CGFloat
+    ) -> some View {
+        GeometryReader { geometry in
+            TeamLogoView(
+                urlString: urlString,
+                teamName: teamName,
+                size: max(geometry.size.width, geometry.size.height) * 0.95,
+                contentMode: .fit,
+                clipsToCircle: false
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .blur(radius: 10)
+            .opacity(0.12)
+            .offset(x: horizontalOffset)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
     }
 }
 
