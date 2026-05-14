@@ -36,8 +36,21 @@ final class AppViewModel {
     }
 
     func restoreSession() async {
+        isLoading = true
+        defer { isLoading = false }
+
         if let user = await authService.restoreSession() {
             currentUser = user
+            await refreshUserStats()
+        }
+    }
+
+    /// Re-fetches the user profile (including `isActive`) from the auth service.
+    /// Used by the inactive-account screen to poll for activation.
+    func refreshActiveStatus() async {
+        guard let user = await authService.restoreSession() else { return }
+        currentUser = user
+        if user.isActive {
             await refreshUserStats()
         }
     }

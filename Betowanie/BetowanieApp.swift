@@ -26,6 +26,7 @@ struct BetowanieApp: App {
         WindowGroup {
             RootView()
                 .environment(appVM)
+                .preferredColorScheme(.light)
         }
     }
 }

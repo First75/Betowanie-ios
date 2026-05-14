@@ -2,8 +2,8 @@ import SwiftUI
 
 struct LoginView: View {
     @Environment(AppViewModel.self) private var appVM
-    @State private var email = "test1@test.com"
-    @State private var password = "password"
+    @State private var email = ""
+    @State private var password = ""
     @State private var errorMessage: String?
     @State private var isLoading = false
     @State private var showRegister = false

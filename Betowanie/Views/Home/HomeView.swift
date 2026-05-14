@@ -59,6 +59,7 @@ struct HomeView: View {
             .background(Color.terraBackground)
             .navigationTitle(EventConfig.currentEvent)
             .toolbarTitleDisplayMode(.large)
+            .profileAccessSheet()
             .task {
                 games = (try? await appVM.dataService.fetchGames()) ?? []
                 await appVM.refreshUserStats()
@@ -71,7 +72,7 @@ struct HomeView: View {
             let countdown = countdownComponents(from: context.date, to: EventConfig.finalsBettingClosingDate)
 
             VStack(alignment: .leading, spacing: 14) {
-                Text("Typy finalistów zamykają się za")
+                Text("Turniej rozpoczyna się za")
                     .font(.terraTitle(18))
                     .foregroundStyle(Color.terraTextPrimary)
 

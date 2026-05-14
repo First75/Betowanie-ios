@@ -45,17 +45,19 @@ final class FirebaseAuthService: AuthServiceProtocol {
         changeRequest.displayName = username
         try await changeRequest.commitChanges()
 
-        // Create user document in Firestore
+        // Create user document in Firestore. New accounts start inactive
+        // and must be activated manually by an admin.
         let userData: [String: Any] = [
             "username": username,
             "email": email,
+            "isActive": false,
         ]
         try await firestoreDb
             .collection("users")
             .document(firebaseUser.uid)
             .setData(userData)
 
-        let user = User(id: firebaseUser.uid, username: username, email: email)
+        let user = User(id: firebaseUser.uid, username: username, email: email, isActive: false)
         currentUser = user
         return user
     }
@@ -87,21 +89,20 @@ final class FirebaseAuthService: AuthServiceProtocol {
 
     // MARK: - Helpers
 
-    /// Fetches the user's profile from Firestore `users/{uid}` to get the username
+    /// Fetches the user's profile from Firestore `users/{uid}` to get the username and active status.
     private func fetchUserProfile(uid: String, email: String) async throws -> User {
         let doc = try await firestoreDb
             .collection("users")
             .document(uid)
             .getDocument()
 
-        let username: String
-        if doc.exists, let data = doc.data(), let name = data["username"] as? String {
-            username = name
-        } else {
-            // Fallback to Firebase Auth display name
-            username = Auth.auth().currentUser?.displayName ?? "Użytkownik"
-        }
+        let data = doc.exists ? doc.data() : nil
+        let username = (data?["username"] as? String)
+            ?? Auth.auth().currentUser?.displayName
+            ?? "Użytkownik"
+        // Default to inactive when missing — admin must explicitly activate accounts.
+        let isActive = (data?["isActive"] as? Bool) ?? false
 
-        return User(id: uid, username: username, email: email)
+        return User(id: uid, username: username, email: email, isActive: isActive)
     }
 }

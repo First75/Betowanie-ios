@@ -48,6 +48,7 @@ struct MyBetsView: View {
             }
             .background(Color.terraBackground)
             .navigationTitle("Moje zakłady")
+            .profileAccessSheet()
             .task {
                 guard let userId = appVM.currentUser?.id else { return }
                 let vm = MyBetsViewModel(dataService: appVM.dataService, userId: userId)

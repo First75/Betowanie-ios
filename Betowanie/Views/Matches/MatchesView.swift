@@ -44,6 +44,7 @@ struct MatchesView: View {
             }
             .background(Color.terraBackground)
             .navigationTitle("Mecze")
+            .profileAccessSheet()
             .sheet(item: $selectedGame) { game in
                 MatchDetailView(game: game)
             }

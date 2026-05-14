@@ -153,7 +153,12 @@ final class FirebaseDataService: DataServiceProtocol {
         let data: [String: Any] = [
             "userId": bet.userId,
             "username": bet.username,
-            "teamBet": bet.teamBet,
+            "teamBet": bet.teamBet.map {
+                [
+                    "teamId": $0.teamId,
+                    "teamName": $0.teamName,
+                ]
+            },
         ]
         try await firestoreDb
             .collection("finals")

@@ -33,6 +33,7 @@ struct RankingView: View {
             }
             .background(Color.terraBackground)
             .navigationTitle("Ranking")
+            .profileAccessSheet()
             .sheet(item: $selectedUser, content: { user in
                 UserBetsView(userId: user.id, username: user.username)
                     .presentationDetents([.large])

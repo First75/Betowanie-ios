@@ -13,6 +13,7 @@ struct FinalsBetCard: View {
     @State private var isSaving = false
     @State private var isLoadingOtherBets = false
     @State private var isShowingOtherBetsSheet = false
+    @State private var showSuccessToast = false
 
     @State private var selectedTeam1Id: Int?
     @State private var selectedTeam2Id: Int?
@@ -37,15 +38,32 @@ struct FinalsBetCard: View {
         .sheet(isPresented: $isShowingOtherBetsSheet) {
             otherBetsSheet
         }
+        .overlay(alignment: .top) {
+            if showSuccessToast {
+                TerraToast(message: "Postawiono zakład")
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: showSuccessToast)
     }
 
     private var beforeStartContent: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if let myBet {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Twój zapisany typ")
+                        .font(.terraCaption(12))
+                        .foregroundStyle(Color.terraTextSecondary)
+                    finalistsRow(for: myBet, emphasized: true)
+                }
+            }
+
             HStack(spacing: 12) {
                 teamMenu(title: selectedTeam1Name ?? "Wybierz drużynę 1", selection: $selectedTeam1Id)
                 teamMenu(title: selectedTeam2Name ?? "Wybierz drużynę 2", selection: $selectedTeam2Id)
             }
-            TerraButton(title: "Zapisz typ", isLoading: isSaving) {
+            TerraButton(title: myBet == nil ? "Zapisz typ" : "Zmień typ", isLoading: isSaving) {
                 saveBet()
             }
             .disabled(!canSave)
@@ -362,9 +380,30 @@ struct FinalsBetCard: View {
             ]
         )
         Task {
-            try? await appVM.dataService.placeFinalsBet(bet)
-            myBet = bet
-            isSaving = false
+            do {
+                try await appVM.dataService.placeFinalsBet(bet)
+                await MainActor.run {
+                    myBet = bet
+                    isSaving = false
+                    presentSuccessToast()
+                }
+            } catch {
+                await MainActor.run {
+                    isSaving = false
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func presentSuccessToast() {
+        showSuccessToast = true
+
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            await MainActor.run {
+                showSuccessToast = false
+            }
         }
     }
 }

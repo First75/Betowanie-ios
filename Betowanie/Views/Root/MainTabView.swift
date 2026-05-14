@@ -20,10 +20,6 @@ struct MainTabView: View {
             Tab("Ranking", systemImage: "trophy.fill", value: 3) {
                 RankingView()
             }
-
-            Tab("Profil", systemImage: "person.fill", value: 4) {
-                ProfileView()
-            }
         }
         .tint(.terraPrimary)
     }
