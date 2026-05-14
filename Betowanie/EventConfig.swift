@@ -7,9 +7,9 @@ enum EventConfig {
         var components = DateComponents()
         components.calendar = Calendar(identifier: .gregorian)
         components.timeZone = TimeZone(secondsFromGMT: 2 * 60 * 60)
-        components.year = 2024
+        components.year = 2026
         components.month = 6
-        components.day = 14
+        components.day = 11
         components.hour = 21
         components.minute = 0
         components.second = 0
