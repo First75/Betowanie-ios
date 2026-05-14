@@ -1,10 +1,13 @@
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {onRequest} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 
 const FOOTBALL_DATA_API_TOKEN = defineSecret("FOOTBALL_DATA_API_TOKEN");
-const FOOTBALL_DATA_URL = "https://api.football-data.org/v4/matches";
+const FOOTBALL_DATA_URL = "https://api.football-data.org/v4/competitions/WC/matches";
+const FOOTBALL_DATA_TEAMS_URL =
+  "https://api.football-data.org/v4/competitions/WC/teams";
 const DATABASE_URL =
   "https://betowanie-ee389.europe-west1.firebasedatabase.app/";
 
@@ -14,7 +17,7 @@ admin.initializeApp({
 
 function mapMatch(match) {
   const fullTime = match.score?.fullTime ?? {};
-  const regularTime = match.score?.regularTime ?? {};
+  const regularTimeSource = match.score?.regularTime ?? fullTime;
 
   return {
     awayTeamIcon: match.awayTeam?.crest ?? null,
@@ -28,8 +31,8 @@ function mapMatch(match) {
     homeTeamName: match.homeTeam?.name ?? null,
     id: match.id,
     regularTimeScore: {
-      away: regularTime.away ?? null,
-      home: regularTime.home ?? null,
+      away: regularTimeSource.away ?? null,
+      home: regularTimeSource.home ?? null,
       winner: match.score?.winner ?? null,
     },
     stage: match.stage ?? null,
@@ -37,6 +40,93 @@ function mapMatch(match) {
     timestamp: match.utcDate ? new Date(match.utcDate).getTime() : null,
     winner: match.score?.winner ?? null,
   };
+}
+
+function mapTeam(team) {
+  return {
+    icon: team.crest ?? null,
+    id: team.id,
+    name: team.name ?? null,
+    nameCode: team.tla ?? null,
+  };
+}
+
+async function syncMatchesToDatabase(apiToken) {
+  const response = await fetch(FOOTBALL_DATA_URL, {
+    headers: {
+      "X-Auth-Token": apiToken,
+    },
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    logger.error("football-data request failed", {
+      status: response.status,
+      body: errorBody,
+    });
+
+    const error = new Error(`football-data request failed: ${response.status}`);
+    error.status = response.status;
+    error.body = errorBody;
+    throw error;
+  }
+
+  const payload = await response.json();
+  const matches = Array.isArray(payload.matches) ?
+    payload.matches.map(mapMatch) :
+    [];
+  const result = {
+    matches,
+    matchesLastSyncedAt: Date.now(),
+  };
+
+  await admin.database().ref().update(result);
+
+  logger.info("matches synced", {
+    count: matches.length,
+  });
+
+  return result;
+}
+
+async function syncTeamsToDatabase(apiToken) {
+  const response = await fetch(FOOTBALL_DATA_TEAMS_URL, {
+    headers: {
+      "X-Auth-Token": apiToken,
+    },
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    logger.error("football-data teams request failed", {
+      status: response.status,
+      body: errorBody,
+    });
+
+    const error = new Error(
+        `football-data teams request failed: ${response.status}`,
+    );
+    error.status = response.status;
+    error.body = errorBody;
+    throw error;
+  }
+
+  const payload = await response.json();
+  const teams = Array.isArray(payload.teams) ?
+    payload.teams.map(mapTeam) :
+    [];
+  const result = {
+    teams,
+    teamsLastSyncedAt: Date.now(),
+  };
+
+  await admin.database().ref().update(result);
+
+  logger.info("teams synced", {
+    count: teams.length,
+  });
+
+  return result;
 }
 
 exports.syncMatches = onRequest(
@@ -55,44 +145,89 @@ exports.syncMatches = onRequest(
         return;
       }
 
-      const apiToken = FOOTBALL_DATA_API_TOKEN.value();
+      const apiToken =
+        process.env.LOCAL_FOOTBALL_DATA_API_TOKEN ||
+        FOOTBALL_DATA_API_TOKEN.value();
 
-      const response = await fetch(FOOTBALL_DATA_URL, {
-        headers: {
-          "X-Auth-Token": apiToken,
-        },
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        logger.error("football-data request failed", {
-          status: response.status,
-          body: errorBody,
-        });
-        res.status(response.status).json({
-          error: "football-data request failed",
-          status: response.status,
-          body: errorBody,
+      if (!apiToken) {
+        res.status(500).json({
+          error: "Missing football-data API token.",
         });
         return;
       }
 
-      const payload = await response.json();
-      const matches = Array.isArray(payload.matches) ?
-        payload.matches.map(mapMatch) :
-        [];
-      const result = {
-        matches,
-        matchesLastSyncedAt: Date.now(),
-      };
+      try {
+        const result = await syncMatchesToDatabase(apiToken);
+        res.status(200).json(result);
+      } catch (error) {
+        res.status(error.status || 500).json({
+          error: "football-data request failed",
+          status: error.status || 500,
+          body: error.body || error.message,
+        });
+      }
+    },
+);
 
-      await admin.database().ref().update(result);
+exports.syncMatchesHourly = onSchedule(
+    {
+      schedule: "every 1 hours",
+      timeZone: "Europe/Warsaw",
+      region: "europe-west1",
+      timeoutSeconds: 120,
+      memory: "256MiB",
+      secrets: [FOOTBALL_DATA_API_TOKEN],
+    },
+    async () => {
+      const apiToken = FOOTBALL_DATA_API_TOKEN.value();
 
-      logger.info("matches synced", {
-        count: matches.length,
-      });
+      if (!apiToken) {
+        throw new Error("Missing football-data API token.");
+      }
 
-      res.status(200).json(result);
+      await syncMatchesToDatabase(apiToken);
+    },
+);
+
+// One-time HTTP loader for /teams in Realtime Database.
+// You can comment this export later after the initial import is done.
+exports.syncTeams = onRequest(
+    {
+      region: "europe-west1",
+      timeoutSeconds: 120,
+      memory: "256MiB",
+      cors: true,
+      secrets: [FOOTBALL_DATA_API_TOKEN],
+    },
+    async (req, res) => {
+      if (req.method !== "GET") {
+        res.status(405).json({
+          error: "Method not allowed. Use GET.",
+        });
+        return;
+      }
+
+      const apiToken =
+        process.env.LOCAL_FOOTBALL_DATA_API_TOKEN ||
+        FOOTBALL_DATA_API_TOKEN.value();
+
+      if (!apiToken) {
+        res.status(500).json({
+          error: "Missing football-data API token.",
+        });
+        return;
+      }
+
+      try {
+        const result = await syncTeamsToDatabase(apiToken);
+        res.status(200).json(result);
+      } catch (error) {
+        res.status(error.status || 500).json({
+          error: "football-data teams request failed",
+          status: error.status || 500,
+          body: error.body || error.message,
+        });
+      }
     },
 );
 
@@ -104,9 +239,9 @@ exports.sendTestNotificationToAllUsers = onRequest(
       memory: "256MiB",
     },
     async (req, res) => {
-      if (req.method !== "POST") {
+      if (req.method !== "GET") {
         res.status(405).json({
-          error: "Method not allowed. Use POST.",
+          error: "Method not allowed. Use GET.",
         });
         return;
       }
