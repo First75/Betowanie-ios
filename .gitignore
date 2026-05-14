@@ -1,0 +1,49 @@
+# Xcode
+*.xcworkspace/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+DerivedData/
+build/
+
+# Xcode user data
+*.xcuserdata/
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# Firebase / Google services
+GoogleService-Info.plist
+**/GoogleService-Info.plist
+
+# Logs
+*.log
+
+# Temporary files
+*.swp
+*.lock
+*.tmp
+
+# Generated
+*.hmap

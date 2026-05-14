@@ -1,0 +1,48 @@
+{
+  "fill" : {
+    "automatic-gradient" : "srgb:0.81569,0.44706,0.31373,1.00000",
+    "orientation" : {
+      "start" : {
+        "x" : 0.5,
+        "y" : 0
+      },
+      "stop" : {
+        "x" : 0.5,
+        "y" : 0.7
+      }
+    }
+  },
+  "groups" : [
+    {
+      "blur-material" : null,
+      "layers" : [
+        {
+          "glass" : true,
+          "image-name" : "trophy_24dp_E8EAED_FILL0_wght400_GRAD0_opsz24.svg",
+          "name" : "trophy_24dp_E8EAED_FILL0_wght400_GRAD0_opsz24",
+          "position" : {
+            "scale" : 38,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
