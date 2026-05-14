@@ -1,16 +1,75 @@
 import SwiftUI
-import WebKit
 
 struct TeamLogoView: View {
     let urlString: String
     let teamName: String
-    var teamId: Int? = nil
     var size: CGFloat = 36
     var contentMode: ContentMode = .fit
     var clipsToCircle: Bool = true
 
+    private static let teamNameToId: [String: String] = [
+        "Uruguay": "758",
+        "Germany": "759",
+        "Spain": "760",
+        "Paraguay": "761",
+        "Argentina": "762",
+        "Ghana": "763",
+        "Brazil": "764",
+        "Portugal": "765",
+        "Japan": "766",
+        "Mexico": "769",
+        "England": "770",
+        "United States": "771",
+        "South Korea": "772",
+        "France": "773",
+        "South Africa": "774",
+        "Algeria": "778",
+        "Australia": "779",
+        "New Zealand": "783",
+        "Switzerland": "788",
+        "Ecuador": "791",
+        "Sweden": "792",
+        "Czechia": "798",
+        "Croatia": "799",
+        "Saudi Arabia": "801",
+        "Tunisia": "802",
+        "Turkey": "803",
+        "Senegal": "804",
+        "Belgium": "805",
+        "Morocco": "815",
+        "Austria": "816",
+        "Colombia": "818",
+        "Egypt": "825",
+        "Canada": "828",
+        "Haiti": "836",
+        "Iran": "840",
+        "Bosnia-Herzegovina": "1060",
+        "Panama": "1836",
+        "Cape Verde Islands": "1930",
+        "Congo DR": "1934",
+        "Ivory Coast": "1935",
+        "Qatar": "8030",
+        "Jordan": "8049",
+        "Iraq": "8062",
+        "Uzbekistan": "8070",
+        "Netherlands": "8601",
+        "Norway": "8872",
+        "Scotland": "8873",
+        "Curaçao": "9460"
+    ]
+
     private var localAssetName: String? {
-        teamId.map(String.init)
+        Self.teamNameToId[teamName]
+    }
+
+    private var remoteImageURL: URL? {
+        guard !urlString.isEmpty else { return nil }
+
+        if urlString.lowercased().hasSuffix(".svg") {
+            return URL(string: String(urlString.dropLast(4)) + ".png")
+        }
+
+        return URL(string: urlString)
     }
 
     var body: some View {
@@ -20,12 +79,8 @@ struct TeamLogoView: View {
                 .aspectRatio(contentMode: contentMode)
                 .frame(width: size, height: size)
                 .modifier(TeamLogoClipModifier(clipsToCircle: clipsToCircle))
-        } else if urlString.lowercased().hasSuffix(".svg") {
-            SVGWebView(urlString: urlString, size: size, contentMode: contentMode)
-                .frame(width: size, height: size)
-                .modifier(TeamLogoClipModifier(clipsToCircle: clipsToCircle))
-        } else {
-            AsyncImage(url: URL(string: urlString)) { phase in
+        } else if let remoteImageURL {
+            AsyncImage(url: remoteImageURL) { phase in
                 switch phase {
                 case .success(let image):
                     image
@@ -40,6 +95,8 @@ struct TeamLogoView: View {
             }
             .frame(width: size, height: size)
             .modifier(TeamLogoClipModifier(clipsToCircle: clipsToCircle))
+        } else {
+            initialsView
         }
     }
 
@@ -68,43 +125,5 @@ private struct TeamLogoClipModifier: ViewModifier {
         } else {
             content
         }
-    }
-}
-
-struct SVGWebView: UIViewRepresentable {
-    let urlString: String
-    let size: CGFloat
-    let contentMode: ContentMode
-
-    func makeUIView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        let webView = WKWebView(frame: .zero, configuration: config)
-        webView.isOpaque = false
-        webView.backgroundColor = .clear
-        webView.scrollView.isScrollEnabled = false
-        webView.scrollView.bounces = false
-        webView.isUserInteractionEnabled = false
-        return webView
-    }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        guard let url = URL(string: urlString) else { return }
-        let objectFit = contentMode == .fill ? "cover" : "contain"
-        // Use an HTML wrapper to ensure the SVG fits the view bounds and has transparent background
-        let html = """
-        <html>
-        <head>
-            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">
-            <style>
-                html, body { margin:0; padding:0; background: transparent; }
-                img { width: 100%; height: 100%; object-fit: \(objectFit); display:block; }
-            </style>
-        </head>
-        <body>
-            <img src=\"\(url.absoluteString)\" alt=\"team\" />
-        </body>
-        </html>
-        """
-        webView.loadHTMLString(html, baseURL: nil)
     }
 }
