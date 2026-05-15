@@ -11,6 +11,10 @@ protocol AuthServiceProtocol {
 
     /// Saves the device's FCM token to the user's profile so the backend can target this device.
     func updateFCMToken(_ token: String) async throws
+
+    /// Uploads the already-prepared JPEG avatar to Firebase Storage, persists the
+    /// download URL on the user's profile, and returns the new URL.
+    func uploadAvatar(jpegData: Data) async throws -> URL
 }
 
 enum AuthError: LocalizedError {

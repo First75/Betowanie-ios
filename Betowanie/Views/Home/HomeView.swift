@@ -275,24 +275,13 @@ struct CountdownCard: View {
 private struct RulesSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    private static let rules: [String] = [
-        "Wpisowe nagrodę dla pierwszych trzech miejsc. Podział nagród: 🥇60% 🥈25% 🥉15%",
-        "Za poprawne wytypowanie zwycięzcy: +1 pkt.",
-        "Za poprawne wytypowanie dokładnego wyniku: +2 pkt.",
-        "Dokładny wynik można postawić niezależnie na kogo obstawiło się zwycięzcę.",
-        "Zakład bonusowy: Za wytypowanie finalisty: +3 pkt (max 6 pkt).",
-        "Mecze będą rozliczane po zakończeniu regulaminowego czasu wraz z doliczonym czasem. Dogrywka oraz rzuty karne nie są brane pod uwagę.",
-        "Wygrywa osoba, która zgarnie najwięcej punktów. W przypadku remisu rozstrzyga najwięcej trafień dokładnych wyników.",
-        "Zakład bonusowy należy postawić przed rozpoczęciem turnieju. Zakłady na mecze do planowego rozpoczęcia meczu.",
-    ]
-
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(Array(Self.rules.enumerated()), id: \.offset) { index, rule in
-                        ruleRow(number: index + 1, text: rule)
-                    }
+                VStack(spacing: 20) {
+                    scoringSection
+                    prizesSection
+                    otherRulesSection
                 }
                 .padding(16)
             }
@@ -309,24 +298,165 @@ private struct RulesSheet: View {
         .presentationDragIndicator(.visible)
     }
 
-    private func ruleRow(number: Int, text: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text("\(number)")
-                .font(.terraLabel())
+    // MARK: Scoring
+
+    private var scoringSection: some View {
+        sectionContainer(title: "Punktacja", icon: "target") {
+            VStack(spacing: 10) {
+                scoreRow(
+                    points: "+1",
+                    title: "Trafiony zwycięzca",
+                    subtitle: "Wytypujesz wynik 1, X lub 2."
+                )
+                scoreRow(
+                    points: "+2",
+                    title: "Dokładny wynik",
+                    subtitle: "Trafisz dokładną liczbę bramek."
+                )
+                scoreRow(
+                    points: "+3",
+                    title: "Bonus finalisty",
+                    subtitle: "Za każdego trafionego finalistę (maks. 6 pkt)."
+                )
+            }
+
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.terraTextSecondary)
+                    .padding(.top, 2)
+                Text("Dokładny wynik liczy się niezależnie od tego, na kogo obstawisz zwycięzcę.")
+                    .font(.terraCaption(12))
+                    .foregroundStyle(Color.terraTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    private func scoreRow(points: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 14) {
+            Text(points)
+                .font(.terraHeadline(20))
                 .foregroundStyle(.white)
-                .frame(width: 28, height: 28)
+                .frame(width: 52, height: 52)
                 .background(Color.terraPrimary)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.terraLabel(15))
+                    .foregroundStyle(Color.terraTextPrimary)
+                Text(subtitle)
+                    .font(.terraCaption(12))
+                    .foregroundStyle(Color.terraTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: Prizes
+
+    private var prizesSection: some View {
+        sectionContainer(title: "Nagrody", icon: "trophy.fill") {
+            HStack(spacing: 10) {
+                prizeTile(medal: "🥇", percent: "60%", subtitle: "1. miejsce")
+                prizeTile(medal: "🥈", percent: "25%", subtitle: "2. miejsce")
+                prizeTile(medal: "🥉", percent: "15%", subtitle: "3. miejsce")
+            }
+            Text("Pula nagród pochodzi z wpisowego.")
+                .font(.terraCaption(12))
+                .foregroundStyle(Color.terraTextSecondary)
+                .padding(.top, 4)
+        }
+    }
+
+    private func prizeTile(medal: String, percent: String, subtitle: String) -> some View {
+        VStack(spacing: 4) {
+            Text(medal)
+                .font(.system(size: 28))
+            Text(percent)
+                .font(.terraHeadline(20))
+                .foregroundStyle(Color.terraTextPrimary)
+            Text(subtitle)
+                .font(.terraCaption(11))
+                .foregroundStyle(Color.terraTextSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Color.terraBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: Other rules
+
+    private var otherRulesSection: some View {
+        sectionContainer(title: "Pozostałe zasady", icon: "list.bullet.rectangle") {
+            VStack(spacing: 14) {
+                iconRule(
+                    icon: "stopwatch",
+                    title: "Tylko czas regulaminowy",
+                    text: "Mecze rozliczane są po regulaminowym czasie z doliczonym. Dogrywka i karne się nie liczą."
+                )
+                iconRule(
+                    icon: "equal.circle",
+                    title: "Remis w rankingu",
+                    text: "Przy tej samej liczbie punktów decyduje większa liczba trafionych dokładnych wyników."
+                )
+                iconRule(
+                    icon: "clock",
+                    title: "Terminy zakładów",
+                    text: "Bonus finalisty — przed startem turnieju. Zakłady meczowe — do planowego rozpoczęcia meczu."
+                )
+            }
+        }
+    }
+
+    private func iconRule(icon: String, title: String, text: String) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.terraPrimary)
+                .frame(width: 36, height: 36)
+                .background(Color.terraPrimary.opacity(0.12))
                 .clipShape(Circle())
 
-            Text(text)
-                .font(.terraBody(15))
-                .foregroundStyle(Color.terraTextPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.terraLabel(14))
+                    .foregroundStyle(Color.terraTextPrimary)
+                Text(text)
+                    .font(.terraBody(13))
+                    .foregroundStyle(Color.terraTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
         }
-        .padding(14)
+    }
+
+    // MARK: Section container
+
+    @ViewBuilder
+    private func sectionContainer<Content: View>(
+        title: String,
+        icon: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.terraPrimary)
+                Text(title)
+                    .font(.terraTitle(18))
+                    .foregroundStyle(Color.terraTextPrimary)
+            }
+            content()
+        }
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.terraCardFill)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }

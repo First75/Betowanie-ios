@@ -76,4 +76,9 @@ final class DummyAuthService: AuthServiceProtocol {
         // Dummy service does not persist tokens
         print("[DummyAuth] updateFCMToken (no-op): \(token.prefix(12))…")
     }
+
+    func uploadAvatar(jpegData: Data) async throws -> URL {
+        // Dummy service has no remote storage — just throw so callers fall through.
+        throw AuthError.unknown("Avatar upload not available in offline mode")
+    }
 }

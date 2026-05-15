@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		68066ADB2FB66B0900B614DD /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 68066ADA2FB66B0900B614DD /* FirebaseMessaging */; };
+		68066BD12FB7061C00B614DD /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 68066BD02FB7061C00B614DD /* FirebaseStorage */; };
 		68A5F21C2FB5D408006181B8 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 68A5F21B2FB5D408006181B8 /* FirebaseAnalytics */; };
 		68A5F21E2FB5D408006181B8 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 68A5F21D2FB5D408006181B8 /* FirebaseAuth */; };
 		68A5F2202FB5D408006181B8 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 68A5F21F2FB5D408006181B8 /* FirebaseCrashlytics */; };
@@ -51,6 +52,7 @@
 				68066ADB2FB66B0900B614DD /* FirebaseMessaging in Frameworks */,
 				68A5F2242FB5D408006181B8 /* FirebaseFunctions in Frameworks */,
 				68A5F2222FB5D408006181B8 /* FirebaseDatabase in Frameworks */,
+				68066BD12FB7061C00B614DD /* FirebaseStorage in Frameworks */,
 				68A5F21E2FB5D408006181B8 /* FirebaseAuth in Frameworks */,
 				68A5F2752FB5E10B006181B8 /* FirebaseFirestore in Frameworks */,
 			);
@@ -110,6 +112,7 @@
 				68A5F2232FB5D408006181B8 /* FirebaseFunctions */,
 				68A5F2742FB5E10B006181B8 /* FirebaseFirestore */,
 				68066ADA2FB66B0900B614DD /* FirebaseMessaging */,
+				68066BD02FB7061C00B614DD /* FirebaseStorage */,
 			);
 			productName = Betowanie;
 			productReference = 68A5F2012FB5D151006181B8 /* Betowanie.app */;
@@ -297,7 +300,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = Betowanie/Betowanie.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = LMAUC8F34K;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -331,7 +334,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.02;
+				MARKETING_VERSION = 1.03;
 				PRODUCT_BUNDLE_IDENTIFIER = com.first75.Betowanie;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -357,7 +360,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = Betowanie/Betowanie.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = LMAUC8F34K;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -391,7 +394,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.02;
+				MARKETING_VERSION = 1.03;
 				PRODUCT_BUNDLE_IDENTIFIER = com.first75.Betowanie;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -448,6 +451,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 68A5F21A2FB5D408006181B8 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
+		};
+		68066BD02FB7061C00B614DD /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 68A5F21A2FB5D408006181B8 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
 		};
 		68A5F21B2FB5D408006181B8 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;

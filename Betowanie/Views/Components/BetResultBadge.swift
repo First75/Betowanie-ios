@@ -58,10 +58,16 @@ struct BetResultBadge: View {
 
     static func result(for bet: Bet, game: Game) -> BetResult {
         guard game.isFinished || game.isLive else { return .pending }
-        let breakdown = bet.points(against: game)
-        if breakdown.bothHit { return .exactScoreAndWinner }
-        if breakdown.scoreHit { return .exactScore }
-        if breakdown.winnerHit { return .correctOutcome }
-        return .wrong
+        guard let score = game.regularTimeScore else { return .pending }
+
+        let winnerHit = bet.winner == score.winner
+        let scoreHit = bet.homeGoals == score.home && bet.awayGoals == score.away
+
+        switch (winnerHit, scoreHit) {
+        case (true, true): return .exactScoreAndWinner
+        case (false, true): return .exactScore
+        case (true, false): return .correctOutcome
+        case (false, false): return .wrong
+        }
     }
 }

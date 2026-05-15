@@ -5,4 +5,5 @@ struct User: Identifiable, Equatable {
     var username: String
     var email: String
     var isActive: Bool = true
+    var photoURL: String? = nil
 }

@@ -137,8 +137,8 @@ struct FinalsBetCard: View {
     @ViewBuilder
     private func finalistTeamPill(for team: Team?, fallbackName: String?, emphasized: Bool) -> some View {
         HStack(spacing: 8) {
-            if let team {                
-                TeamLogoView(urlString: team.icon, teamName: team.name, teamId: team.id, size: 28)
+            if let team {
+                TeamLogoView(urlString: team.icon, teamName: team.name, size: 28)
             } else {
                 Circle()
                     .fill(Color.terraPrimary.opacity(0.14))

@@ -9,20 +9,29 @@ struct UserBetsView: View {
     let username: String
 
     @State private var viewModel: MyBetsViewModel?
+    @State private var statsViewModel: UserStatsViewModel?
 
     var body: some View {
         NavigationStack {
             Group {
                 if let viewModel {
-                    VStack(spacing: 0) {
-                        // Points over time chart
-                        if !buildPointsSamples(from: viewModel.filteredBets).isEmpty {
-                            pointsChart(samples: buildPointsSamples(from: viewModel.filteredBets))
-                                .padding(.horizontal, 16)
-                                .padding(.top, 12)
-                        }
-                        // Bets list
-                        ScrollView {
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            UserProfileHeader(username: username)
+                                .padding(.top, 8)
+
+                            if let statsViewModel {
+                                UserStatsCard(stats: statsViewModel.stats)
+                                    .padding(.horizontal, 16)
+                            }
+
+                            // Points over time chart
+                            if !buildPointsSamples(from: viewModel.filteredBets).isEmpty {
+                                pointsChart(samples: buildPointsSamples(from: viewModel.filteredBets))
+                                    .padding(.horizontal, 16)
+                            }
+
+                            // Bets list
                             if viewModel.filteredBets.isEmpty {
                                 emptyStateView
                             } else {
@@ -34,16 +43,16 @@ struct UserBetsView: View {
                                 .padding(12)
                                 .terraCard()
                                 .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
                             }
                         }
+                        .padding(.vertical, 8)
                     }
                 } else {
                     ProgressView()
                 }
             }
             .background(Color.terraBackground)
-            .navigationTitle("Zakłady: \(username)")
+            .navigationTitle(username)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -54,7 +63,11 @@ struct UserBetsView: View {
                 let vm = MyBetsViewModel(dataService: appVM.dataService, userId: userId)
                 viewModel = vm
                 vm.selectedFilter = .closed
-                await vm.loadData()
+                let statsVM = UserStatsViewModel(dataService: appVM.dataService, userId: userId)
+                statsViewModel = statsVM
+                async let bets: Void = vm.loadData()
+                async let stats: Void = statsVM.load()
+                _ = await (bets, stats)
             }
         }
     }

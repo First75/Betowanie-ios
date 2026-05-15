@@ -1,6 +1,7 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseStorage
 
 /// Firebase Auth + Firestore implementation of AuthServiceProtocol.
 ///
@@ -13,6 +14,7 @@ final class FirebaseAuthService: AuthServiceProtocol {
 
     private(set) var currentUser: User?
     private let firestoreDb = Firestore.firestore()
+    private let storage = Storage.storage()
 
     init() {
         // If Firebase Auth has a persisted session, map it to our User
@@ -116,7 +118,56 @@ final class FirebaseAuthService: AuthServiceProtocol {
             ?? "Użytkownik"
         // Default to inactive when missing — admin must explicitly activate accounts.
         let isActive = (data?["isActive"] as? Bool) ?? false
+        let photoURL = data?["photoURL"] as? String
 
-        return User(id: uid, username: username, email: email, isActive: isActive)
+        return User(id: uid, username: username, email: email, isActive: isActive, photoURL: photoURL)
+    }
+
+    // MARK: - Avatar upload
+
+    func uploadAvatar(jpegData: Data) async throws -> URL {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AuthError.userNotFound
+        }
+
+        let metadata = StorageMetadata()
+        metadata.contentType = "image/jpeg"
+        // Bust download caches so a new avatar shows up immediately on every device.
+        metadata.cacheControl = "public, max-age=60"
+
+        let ref = storage.reference().child("avatars/\(uid)")
+        _ = try await ref.putDataAsync(jpegData, metadata: metadata)
+
+        // Newer `.firebasestorage.app` buckets sometimes 404 on `downloadURL()`
+        // even after a successful upload. Fall back to the well-known public-read
+        // URL — our Storage rules allow `read: if true` on `/avatars/*`, so the
+        // unauthenticated REST URL is sufficient and avoids the SDK round-trip.
+        let url: URL
+        do {
+            url = try await ref.downloadURL()
+        } catch {
+            print("[Firebase] downloadURL failed, using public-read fallback: \(error)")
+            url = Self.publicReadURL(bucket: ref.bucket, path: ref.fullPath)
+        }
+
+        try await firestoreDb
+            .collection("users")
+            .document(uid)
+            .setData(["photoURL": url.absoluteString], merge: true)
+
+        if var user = currentUser {
+            user.photoURL = url.absoluteString
+            currentUser = user
+        }
+
+        print("[Firebase WRITE] avatars/\(uid) -> \(jpegData.count) bytes, url: \(url.absoluteString)")
+        return url
+    }
+
+    /// Builds the unauthenticated Firebase Storage REST URL for an object. Only
+    /// usable when the bucket's rules allow public reads for the path.
+    private static func publicReadURL(bucket: String, path: String) -> URL {
+        let encoded = path.replacingOccurrences(of: "/", with: "%2F")
+        return URL(string: "https://firebasestorage.googleapis.com/v0/b/\(bucket)/o/\(encoded)?alt=media")!
     }
 }

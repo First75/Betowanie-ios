@@ -176,62 +176,162 @@ final class FirebaseDataService: DataServiceProtocol {
             cachedGames = try await fetchGames()
         }
 
+        let activeUsers = try await fetchActiveUsers()
         let allBets = try await fetchAllBets()
         let allFinalsBets = try await fetchAllFinalsBets()
         let finalGame = cachedGames.first(where: { $0.stage == .final_ })
-        let settledGames = Dictionary(
-            uniqueKeysWithValues: cachedGames.filter { $0.isFinished }.map { ($0.id, $0) }
+        // Include live matches so their in-play scores count toward the live ranking.
+        let scoringGames = Dictionary(
+            uniqueKeysWithValues: cachedGames
+                .filter { $0.isFinished || $0.isLive }
+                .map { ($0.id, $0) }
         )
 
-        var totals: [String: (username: String, points: Int, exactScores: Int, correctOutcomes: Int)] = [:]
+        var totals: [String: UserTotals] = [:]
+
+        // Seed every active user so accounts with 0 points still appear in the ranking.
+        for user in activeUsers {
+            totals[user.id] = UserTotals(username: user.username)
+        }
 
         for bet in allBets {
-            guard let game = settledGames[bet.gameId] else { continue }
+            // Skip bets from inactive/unknown users so the ranking only shows active accounts.
+            guard var existing = totals[bet.userId] else { continue }
+            guard let game = scoringGames[bet.gameId] else { continue }
             let breakdown = bet.points(against: game)
-            let existing = totals[bet.userId]
 
-            totals[bet.userId] = (
-                username: bet.username,
-                points: (existing?.points ?? 0) + breakdown.points,
-                exactScores: (existing?.exactScores ?? 0) + breakdown.accurateScores,
-                correctOutcomes: (existing?.correctOutcomes ?? 0) + (breakdown.winnerHit ? 1 : 0)
-            )
+            existing.points += breakdown.points
+            existing.exactScores += breakdown.accurateScores
+            existing.correctOutcomes += breakdown.winnerHit ? 1 : 0
+            existing.livePoints += breakdown.livePoints
+            existing.liveExactScores += breakdown.liveAccurateScores
+            totals[bet.userId] = existing
         }
 
         if let finalGame {
             for finalsBet in allFinalsBets {
-                let existing = totals[finalsBet.userId]
-                totals[finalsBet.userId] = (
-                    username: existing?.username ?? finalsBet.username,
-                    points: (existing?.points ?? 0) + Self.finalsPoints(for: finalsBet, finalGame: finalGame),
-                    exactScores: existing?.exactScores ?? 0,
-                    correctOutcomes: existing?.correctOutcomes ?? 0
-                )
+                guard var existing = totals[finalsBet.userId] else { continue }
+                let pts = Self.finalsPoints(for: finalsBet, finalGame: finalGame)
+                existing.points += pts
+                existing.livePoints += pts
+                totals[finalsBet.userId] = existing
             }
         }
 
-        // Sort by points descending, tiebreak by accurate scores descending (rule 7)
-        let ranking = totals
-            .sorted {
-                if $0.value.points != $1.value.points {
-                    return $0.value.points > $1.value.points
-                }
-                return $0.value.exactScores > $1.value.exactScores
-            }
-            .enumerated()
-            .map { index, entry in
-                RankingEntry(
-                    id: entry.key,
-                    username: entry.value.username,
-                    totalPoints: entry.value.points,
-                    position: index + 1,
-                    correctScores: entry.value.exactScores,
-                    correctOutcomes: entry.value.correctOutcomes
-                )
-            }
+        // Base positions: standings using only finished-match points (live matches ignored).
+        let basePositions = Self.assignPositions(totals: totals, useLiveValues: false)
+        // Live positions: include in-play / paused match results in the standings.
+        let ranking = Self.buildRanking(totals: totals, basePositions: basePositions)
 
         print("[Firebase READ] ranking computed -> \(ranking.count) entries")
         return ranking
+    }
+
+    /// Per-user totals tracked while computing the ranking. Mirrors both the finished-only
+    /// values (used for the pre-live "base" positions) and the live values (used for the
+    /// currently displayed standings).
+    private struct UserTotals {
+        let username: String
+        var points: Int = 0
+        var exactScores: Int = 0
+        var correctOutcomes: Int = 0
+        var livePoints: Int = 0
+        var liveExactScores: Int = 0
+    }
+
+    /// Sorts `totals` and assigns competition-style positions (1,1,1,4,...). Pass
+    /// `useLiveValues = true` to rank by live points / live exact scores; otherwise
+    /// uses finished-only points / exact scores.
+    private static func assignPositions(totals: [String: UserTotals], useLiveValues: Bool) -> [String: Int] {
+        let sorted = totals.sorted { lhs, rhs in
+            let lPoints = useLiveValues ? lhs.value.livePoints : lhs.value.points
+            let rPoints = useLiveValues ? rhs.value.livePoints : rhs.value.points
+            if lPoints != rPoints { return lPoints > rPoints }
+            let lExact = useLiveValues ? lhs.value.liveExactScores : lhs.value.exactScores
+            let rExact = useLiveValues ? rhs.value.liveExactScores : rhs.value.exactScores
+            if lExact != rExact { return lExact > rExact }
+            return lhs.value.username.localizedCaseInsensitiveCompare(rhs.value.username) == .orderedAscending
+        }
+
+        var positions: [String: Int] = [:]
+        var lastPoints: Int?
+        var lastExact: Int?
+        var lastPosition = 0
+        for (index, entry) in sorted.enumerated() {
+            let pts = useLiveValues ? entry.value.livePoints : entry.value.points
+            let exact = useLiveValues ? entry.value.liveExactScores : entry.value.exactScores
+            let position: Int
+            if pts == lastPoints && exact == lastExact {
+                position = lastPosition
+            } else {
+                position = index + 1
+                lastPosition = position
+                lastPoints = pts
+                lastExact = exact
+            }
+            positions[entry.key] = position
+        }
+        return positions
+    }
+
+    /// Builds the ordered ranking using live points/exact scores for display and the
+    /// supplied base positions to compute each user's `positionChange`.
+    private static func buildRanking(totals: [String: UserTotals], basePositions: [String: Int]) -> [RankingEntry] {
+        let sortedLive = totals.sorted { lhs, rhs in
+            if lhs.value.livePoints != rhs.value.livePoints {
+                return lhs.value.livePoints > rhs.value.livePoints
+            }
+            if lhs.value.liveExactScores != rhs.value.liveExactScores {
+                return lhs.value.liveExactScores > rhs.value.liveExactScores
+            }
+            return lhs.value.username.localizedCaseInsensitiveCompare(rhs.value.username) == .orderedAscending
+        }
+
+        var ranking: [RankingEntry] = []
+        var lastPoints: Int?
+        var lastExact: Int?
+        var lastPosition = 0
+        for (index, entry) in sortedLive.enumerated() {
+            let livePosition: Int
+            if entry.value.livePoints == lastPoints && entry.value.liveExactScores == lastExact {
+                livePosition = lastPosition
+            } else {
+                livePosition = index + 1
+                lastPosition = livePosition
+                lastPoints = entry.value.livePoints
+                lastExact = entry.value.liveExactScores
+            }
+            let basePosition = basePositions[entry.key] ?? livePosition
+            ranking.append(
+                RankingEntry(
+                    id: entry.key,
+                    username: entry.value.username,
+                    totalPoints: entry.value.livePoints,
+                    position: livePosition,
+                    correctScores: entry.value.liveExactScores,
+                    correctOutcomes: entry.value.correctOutcomes,
+                    positionChange: basePosition - livePosition
+                )
+            )
+        }
+        return ranking
+    }
+
+    /// Fetches active users from Firestore `users/` so the ranking can include
+    /// every approved account, including those who haven't placed any bets yet.
+    private func fetchActiveUsers() async throws -> [(id: String, username: String)] {
+        let snapshot = try await firestoreDb
+            .collection("users")
+            .whereField("isActive", isEqualTo: true)
+            .getDocuments()
+
+        let users: [(id: String, username: String)] = snapshot.documents.compactMap { doc in
+            let data = doc.data()
+            let username = (data["username"] as? String) ?? "Użytkownik"
+            return (id: doc.documentID, username: username)
+        }
+        print("[Firebase READ] users/ where isActive=true -> \(users.count) users parsed")
+        return users
     }
 
     // MARK: - Helpers

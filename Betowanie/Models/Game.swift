@@ -28,6 +28,13 @@ struct Game: Identifiable, Codable {
         status == .inPlay || status == .live || status == .paused
     }
 
+    /// Whether the user is allowed to place or modify a bet on this game. Bets
+    /// lock as soon as the game leaves `.timed` (e.g. goes live, finishes,
+    /// gets postponed/cancelled). Other states expose bets read-only.
+    var isBettable: Bool {
+        status == .timed
+    }
+
     var displayScore: String {
         guard let score = fullTimeScore else { return "– : –" }
         return "\(score.home) - \(score.away)"

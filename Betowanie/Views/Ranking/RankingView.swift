@@ -55,8 +55,13 @@ struct RankingView: View {
         let isCurrentUser = entry.id == appVM.currentUser?.id
 
         return HStack(spacing: 16) {
-            // Position
-            positionBadge(entry.position)
+            // Position + live position-change indicator
+            VStack(spacing: 4) {
+                positionBadge(entry.position)
+                if entry.positionChange != 0 {
+                    positionChangeLabel(entry.positionChange)
+                }
+            }
 
             // User info
             VStack(alignment: .leading, spacing: 2) {
@@ -96,6 +101,25 @@ struct RankingView: View {
                 .font(.terraLabel())
                 .foregroundStyle(.white)
         }
+    }
+
+    /// Small green/red label showing how many positions the user has gained or lost
+    /// due to currently in-play matches.
+    private func positionChangeLabel(_ change: Int) -> some View {
+        let isPositive = change > 0
+        let magnitude = abs(change)
+        let color: Color = isPositive ? Color.terraSuccess : Color.terraError
+        return HStack(spacing: 2) {
+            Image(systemName: isPositive ? "arrow.up" : "arrow.down")
+                .font(.system(size: 8, weight: .bold))
+            Text("\(magnitude)")
+                .font(.terraCaption(10))
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background(color.opacity(0.15))
+        .clipShape(Capsule())
     }
 
     private func positionColor(_ position: Int) -> Color {

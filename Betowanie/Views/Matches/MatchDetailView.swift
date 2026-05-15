@@ -19,10 +19,10 @@ struct MatchDetailView: View {
                     // Match header
                     matchHeader
 
-                    if game.isFinished {
-                        finishedContent
-                    } else {
+                    if game.isBettable {
                         betPlacementContent
+                    } else {
+                        othersBetsContent
                     }
                 }
                 .padding(16)
@@ -180,9 +180,12 @@ struct MatchDetailView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Finished Content
+    // MARK: - Other Users' Bets
 
-    private var finishedContent: some View {
+    /// Shown for every game that is no longer `.timed` — including live and
+    /// finished. Lets users compare their own bet to everyone else's once
+    /// betting is locked.
+    private var othersBetsContent: some View {
         VStack(spacing: 16) {
             Text("Zakłady graczy")
                 .font(.terraTitle())
@@ -206,7 +209,9 @@ struct MatchDetailView: View {
 
     private func betRow(_ bet: Bet) -> some View {
         let isCurrentUser = bet.userId == appVM.currentUser?.id
-        let pts = bet.finalPoints(against: game)
+        // Show live points for in-play games so the row reflects what the
+        // bettor is currently earning, not the (yet-to-be-finalized) 0.
+        let pts = bet.points(against: game).livePoints
 
         return HStack {
             VStack(alignment: .leading, spacing: 2) {

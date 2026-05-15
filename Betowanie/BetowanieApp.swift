@@ -28,6 +28,9 @@ struct BetowanieApp: App {
             RootView()
                 .environment(appVM)
                 .preferredColorScheme(.light)
+                .task {
+                    await TeamLogoView.preloadKnownTeamLogos()
+                }
         }
     }
 }
